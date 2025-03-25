@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microphone Test for Wix</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    textarea {
+      width: 300px;
+      height: 150px;
+      padding: 10px;
+      font-size: 14px;
+      resize: none;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <button id="micButton">Start Microphone</button>
+  <textarea id="outputBox" placeholder="Your speech will appear here..." readonly></textarea>
+
+  <script>
+    const micButton = document.getElementById('micButton');
+    const outputBox = document.getElementById('outputBox');
+    let isRecording = false;
+    let recognition;
+
+    // Check for SpeechRecognition API support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      outputBox.value = "Sorry, your browser doesn't support Speech Recognition.";
+      micButton.disabled = true;
+      return;
+    }
+
+    // Initialize SpeechRecognition
+    recognition = new SpeechRecognition();
+    recognition.continuous = true; // Keep listening until stopped
+    recognition.interimResults = true; // Show real-time results
+    recognition.lang = 'en-US'; // Set language
+
+    // Handle button click
+    micButton.addEventListener('click', () => {
+      if (!isRecording) {
+        recognition.start();
+        micButton.textContent = 'Stop Microphone';
+        outputBox.value = 'Listening...';
+        isRecording = true;
+      } else {
+        recognition.stop();
+        micButton.textContent = 'Start Microphone';
+        isRecording = false;
+      }
+    });
+
+    // Display transcription results
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      outputBox.value = transcript;
+    };
+
+    // Handle errors
+    recognition.onerror = (event) => {
+      outputBox.value = `Error: ${event.error}`;
+      micButton.textContent = 'Start Microphone';
+      isRecording = false;
+    };
+
+    // Handle end of recognition
+    recognition.onend = () => {
+      if (isRecording) {
+        recognition.start(); // Restart if still in recording mode
+      }
+    };
+  </script>
+</body>
+</html>
