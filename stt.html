@@ -2,7 +2,9 @@
 <html>
 <head>
   <script>
+    console.log("stt.html loaded");
     window.onmessage = function(event) {
+      console.log("Message received:", event.data);
       if (event.data === "startSTT") {
         startSpeechRecognition();
       } else if (event.data === "stopSTT") {
@@ -22,10 +24,12 @@
 
         recognition.onresult = function(event) {
           const transcript = event.results[0][0].transcript;
+          console.log("Transcript received:", transcript);
           window.parent.postMessage({ type: "sttResult", transcript: transcript }, "*");
         };
 
         recognition.onerror = function(event) {
+          console.log("Speech recognition error:", event.error);
           window.parent.postMessage({ type: "sttError", error: event.error }, "*");
         };
 
@@ -36,9 +40,11 @@
         navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
           recognition.start();
         }).catch(error => {
+          console.log("getUserMedia error:", error.message);
           window.parent.postMessage({ type: "sttError", error: "getUserMedia failed: " + error.message }, "*");
         });
       } else {
+        console.log("Speech Recognition not supported");
         window.parent.postMessage({ type: "sttError", error: "Speech Recognition not supported" }, "*");
       }
     }
@@ -46,6 +52,7 @@
     function stopSpeechRecognition() {
       if (recognition) {
         recognition.stop();
+        console.log("Speech recognition stopped.");
       }
     }
   </script>
