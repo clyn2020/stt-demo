@@ -7,7 +7,7 @@ class TestWixMic extends HTMLElement {
   }
 
   connectedCallback() {
-    // Create the UI
+    console.log("TestWixMic element connected");
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -47,24 +47,23 @@ class TestWixMic extends HTMLElement {
       <textarea id="outputBox" placeholder="Your speech will appear here..." readonly></textarea>
     `;
 
-    // Get elements
     this.micButton = this.shadowRoot.getElementById('micButton');
     this.outputBox = this.shadowRoot.getElementById('outputBox');
 
-    // Initialize SpeechRecognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
+      console.error("SpeechRecognition not supported");
       this.outputBox.value = "Sorry, your browser doesn't support Speech Recognition.";
       this.micButton.disabled = true;
       return;
     }
 
+    console.log("SpeechRecognition API available");
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
+    this.recognition.continuous = false; // Stop after each result
+    this.recognition.interimResults = false; // Final results only
     this.recognition.lang = 'en-US';
 
-    // Event listeners
     this.micButton.addEventListener('click', this.toggleMic.bind(this));
     this.recognition.onresult = this.handleResult.bind(this);
     this.recognition.onerror = this.handleError.bind(this);
@@ -72,38 +71,48 @@ class TestWixMic extends HTMLElement {
   }
 
   toggleMic() {
+    console.log("Toggle mic clicked, isRecording:", this.isRecording);
     if (!this.isRecording) {
-      this.recognition.start();
-      this.micButton.textContent = 'Stop Microphone';
-      this.outputBox.value = 'Listening...';
-      this.isRecording = true;
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => {
+          this.recognition.start();
+          this.micButton.textContent = 'Stop Microphone';
+          this.outputBox.value = 'Listening...';
+          this.isRecording = true;
+          console.log("Recognition started");
+        })
+        .catch(error => {
+          console.error("getUserMedia error:", error.message);
+          this.outputBox.value = `Mic access error: ${error.message}`;
+        });
     } else {
       this.recognition.stop();
       this.micButton.textContent = 'Start Microphone';
       this.isRecording = false;
+      console.log("Recognition stopped");
     }
   }
 
   handleResult(event) {
-    let transcript = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript;
-    }
+    const transcript = event.results[0][0].transcript;
     this.outputBox.value = transcript;
+    console.log("Transcript:", transcript);
+    // Send transcript to Wix page
+    this.dispatchEvent(new CustomEvent('speechResult', { detail: { transcript }, bubbles: true }));
   }
 
   handleError(event) {
+    console.error("Recognition error:", event.error);
     this.outputBox.value = `Error: ${event.error}`;
     this.micButton.textContent = 'Start Microphone';
     this.isRecording = false;
   }
 
   handleEnd() {
-    if (this.isRecording) {
-      this.recognition.start(); // Restart if still recording
-    }
+    console.log("Recognition ended");
+    this.micButton.textContent = 'Start Microphone';
+    this.isRecording = false;
   }
 }
 
-// Define the custom element
 customElements.define('test-wix-mic', TestWixMic);
